@@ -1,4 +1,4 @@
-{ lib, config, ... }:
+{ pkgs, lib, config, ... }:
 with lib;
 let
   cfg = config.services.p4net;
@@ -44,8 +44,8 @@ in {
   config = mkIf cfg.enable {
     boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
-    networking.wireguard.interfaces = builtins.mapAttrs (name: icfg: {
-      ips = [ icfg.ips ];
+    networking.wg-quick.interfaces = builtins.mapAttrs (name: icfg: {
+      address = [icfg.ips];
       privateKeyFile = icfg.privateKeyFile;
       listenPort = icfg.listenPort;
 
@@ -55,6 +55,16 @@ in {
         endpoint = pcfg.endpoint;
         persistentKeepalive = 25;
       }) icfg.peers;
+
+      # This allows the wireguard server to route your traffic to the internet and hence be like a VPN
+      postUp = ''
+        ${pkgs.iproute2}/bin/ip route add ${icfg.ips} dev p4net-${name}
+      '';
+
+      # Undo the above
+      preDown = ''
+        ${pkgs.iproute2}/bin/ip route del ${icfg.ips}
+      '';
     }) cfg.instances;
 
     networking.firewall = {
