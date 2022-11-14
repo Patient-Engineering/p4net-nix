@@ -58,7 +58,7 @@ in {
     }) cfg.instances;
 
     networking.firewall = {
-      allowedUDPPorts = map (icfg: ifg.listenPort) (builtins.attrValues cfg.instances);
+      allowedUDPPorts = map (icfg: icfg.listenPort) (builtins.attrValues cfg.instances);
     };
   };
 }
