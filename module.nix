@@ -5,27 +5,36 @@ let
 in {
   options.services.p4net = {
     enable = mkEnableOption "p4net vpn";
-    ips = mkOption {
-      type = types.str;
-    };
-    listenPort = mkOption {
-      type = types.ints.unsigned;
-      default = 51820;
-    };
-    privateKeyFile = mkOption {
-      type = types.str;
-    };
-    peers = mkOption {
-      type = types.listOf (types.submodule {
+    instances = mkOption {
+      type = types.attrsOf (types.submodule {
         options = {
-          publicKey = mkOption {
+          name = mkOption {
             type = types.str;
           };
-          allowedIPs = mkOption {
-            type = types.listOf types.str;
-          };
-          endpoint = mkOption {
+          ips = mkOption {
             type = types.str;
+          };
+          listenPort = mkOption {
+            type = types.ints.unsigned;
+            default = 51820;
+          };
+          privateKeyFile = mkOption {
+            type = types.str;
+          };
+          peers = mkOption {
+            type = types.listOf (types.submodule {
+              options = {
+                publicKey = mkOption {
+                  type = types.str;
+                };
+                allowedIPs = mkOption {
+                  type = types.listOf types.str;
+                };
+                endpoint = mkOption {
+                  type = types.str;
+                };
+              };
+            });
           };
         };
       });
@@ -35,23 +44,21 @@ in {
   config = mkIf cfg.enable {
     boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
-    networking.wireguard.interfaces = {
-      p4net = {
-        ips = [ cfg.ips ];
-        privateKeyFile = cfg.privateKeyFile;
-        listenPort = cfg.listenPort;
+    networking.wireguard.interfaces = builtins.mapAttrs (name: icfg: {
+      ips = [ icfg.ips ];
+      privateKeyFile = icfg.privateKeyFile;
+      listenPort = icfg.listenPort;
 
-        peers = map (pcfg: {
-          publicKey = pcfg.publicKey;
-          allowedIPs = pcfg.allowedIPs;
-          endpoint = pcfg.endpoint;
-          persistentKeepalive = 25;
-        }) cfg.peers;
-      };
-    };
+      peers = map (pcfg: {
+        publicKey = pcfg.publicKey;
+        allowedIPs = pcfg.allowedIPs;
+        endpoint = pcfg.endpoint;
+        persistentKeepalive = 25;
+      }) icfg.peers;
+    }) cfg.instances;
 
     networking.firewall = {
-      allowedUDPPorts = [ cfg.listenPort ];
+      allowedUDPPorts = map (icfg: ifg.listenPort) (builtins.attrValues cfg.instances);
     };
   };
 }
