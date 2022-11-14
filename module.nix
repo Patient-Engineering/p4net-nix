@@ -63,7 +63,7 @@ in {
 
       # Undo the above
       preDown = ''
-        ${pkgs.iproute2}/bin/ip route del ${icfg.ips}
+        ${pkgs.iproute2}/bin/ip route del ${icfg.ips} || true
       '';
     }) cfg.instances;
 
