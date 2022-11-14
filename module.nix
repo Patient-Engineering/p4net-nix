@@ -58,12 +58,12 @@ in {
 
       # This allows the wireguard server to route your traffic to the internet and hence be like a VPN
       postUp = ''
-        ${pkgs.iproute2}/bin/ip route add ${icfg.ips} dev p4net-${name}
+        ${pkgs.iproute2}/bin/ip route add ${icfg.ips} dev ${name}
       '';
 
       # Undo the above
       preDown = ''
-        ${pkgs.iproute2}/bin/ip route del ${icfg.ips} || true
+        ${pkgs.iproute2}/bin/ip route del ${icfg.ips}
       '';
     }) cfg.instances;
 
