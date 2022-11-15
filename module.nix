@@ -24,6 +24,10 @@ in {
           peers = mkOption {
             type = types.listOf (types.submodule {
               options = {
+                route = mkOption {
+                  type = types.nullOr types.str;
+                  default = null;
+                };
                 publicKey = mkOption {
                   type = types.str;
                 };
@@ -31,7 +35,8 @@ in {
                   type = types.listOf types.str;
                 };
                 endpoint = mkOption {
-                  type = types.str;
+                  type = types.nullOr types.str;
+                  default = null;
                 };
               };
             });
@@ -44,7 +49,10 @@ in {
   config = mkIf cfg.enable {
     boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
-    networking.wg-quick.interfaces = builtins.mapAttrs (name: icfg: {
+    networking.wg-quick.interfaces = builtins.mapAttrs (name: icfg: let
+      routes = builtins.filter (r: r != null) (map (pcfg: pcfg.route) icfg.peers);
+      concatLines = (lines: concatStringsSep "\n" lines);
+    in {
       address = [icfg.ips];
       privateKeyFile = icfg.privateKeyFile;
       listenPort = icfg.listenPort;
@@ -56,15 +64,8 @@ in {
         persistentKeepalive = 25;
       }) icfg.peers;
 
-      # This allows the wireguard server to route your traffic to the internet and hence be like a VPN
-      postUp = ''
-        ${pkgs.iproute2}/bin/ip route add ${icfg.ips} dev ${name}
-      '';
-
-      # Undo the above
-      preDown = ''
-        ${pkgs.iproute2}/bin/ip route del ${icfg.ips}
-      '';
+      postUp = concatLines (map (r: "${pkgs.iproute2}/bin/ip route add ${r} dev ${name}") routes);
+      preDown = concatLines (map (r: "${pkgs.iproute2}/bin/ip route del ${r}") routes);
     }) cfg.instances;
 
     networking.firewall = {
