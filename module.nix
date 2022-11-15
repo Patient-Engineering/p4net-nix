@@ -5,21 +5,21 @@ let
 in {
   options.services.p4net = {
     enable = mkEnableOption "p4net vpn";
+    ips = mkOption {
+      type = types.str;
+    };
+    privateKeyFile = mkOption {
+      type = types.str;
+    };
     instances = mkOption {
       type = types.attrsOf (types.submodule {
         options = {
           name = mkOption {
             type = types.str;
           };
-          ips = mkOption {
-            type = types.str;
-          };
           listenPort = mkOption {
             type = types.ints.unsigned;
             default = 51820;
-          };
-          privateKeyFile = mkOption {
-            type = types.str;
           };
           peers = mkOption {
             type = types.listOf (types.submodule {
@@ -53,8 +53,8 @@ in {
       routes = builtins.filter (r: r != null) (map (pcfg: pcfg.route) icfg.peers);
       concatLines = (lines: concatStringsSep "\n" lines);
     in {
-      address = [icfg.ips];
-      privateKeyFile = icfg.privateKeyFile;
+      address = [cfg.ips];
+      privateKeyFile = cfg.privateKeyFile;
       listenPort = icfg.listenPort;
 
       peers = map (pcfg: {
