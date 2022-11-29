@@ -36,7 +36,7 @@ in {
           allowedIPsAsRoutes = mkOption {
             type = types.bool;
             default = true;
-            decription = lib.mdDoc ''
+            description = lib.mdDoc ''
               If wg-quick should add route per allowedIPs
             '';
           };
