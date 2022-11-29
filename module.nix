@@ -60,14 +60,14 @@ in {
               };
             });
           };
-          extraPostUp = {
+          extraPostSetup = {
             type = types.str;
             default = "";
             description = lib.mdDoc ''
               Extra commands executed after interface goes up
             '';
           };
-          extraPostDown = {
+          extraPostShutdown = {
             type = types.str;
             default = "";
             description = lib.mdDoc ''
@@ -82,7 +82,7 @@ in {
   config = mkIf cfg.enable {
     boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
-    networking.wg-quick.interfaces = builtins.mapAttrs (name: icfg: let
+    networking.wireguard.interfaces = builtins.mapAttrs (name: icfg: let
       routes = builtins.filter (r: r != null) (map (pcfg: pcfg.route) icfg.peers);
       concatLines = (lines: concatStringsSep "\n" lines);
     in {
@@ -98,8 +98,8 @@ in {
       }) icfg.peers;
 
       allowedIPsAsRoutes = icfg.allowedIPsAsRoutes;
-      postUp = concatLines (map (r: "${pkgs.iproute2}/bin/ip route add ${r} dev ${name}") routes) icfg.extraPostUp;
-      preDown = concatLines (map (r: "${pkgs.iproute2}/bin/ip route del ${r}") routes) icfg.extraPostDown;
+      postSetup = concatLines (map (r: "${pkgs.iproute2}/bin/ip route add ${r} dev ${name}") routes) icfg.extraPostSetup;
+      postShutdown = concatLines (map (r: "${pkgs.iproute2}/bin/ip route del ${r}") routes) icfg.extraPostShutdown;
     }) cfg.instances;
 
     networking.firewall = {
