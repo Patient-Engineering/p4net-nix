@@ -5,21 +5,40 @@ let
 in {
   options.services.p4net = {
     enable = mkEnableOption "p4net vpn";
-    ips = mkOption {
-      type = types.str;
-    };
     privateKeyFile = mkOption {
       type = types.str;
+      description = lib.mdDoc ''
+        Wireguard private keyfile
+      '';
     };
     instances = mkOption {
       type = types.attrsOf (types.submodule {
         options = {
           name = mkOption {
             type = types.str;
+            description = lib.mdDoc ''
+              Name of the interface
+            '';
           };
           listenPort = mkOption {
             type = types.ints.unsigned;
             default = 51820;
+            description = lib.mdDoc ''
+              Port number for wireguard to listen on
+            '';
+          };
+          ips = mkOption {
+            type = types.listOf types.str;
+            description = lib.mdDoc ''
+              List of IPs for the interface
+            '';
+          };
+          allowedIPsAsRoutes = mkOption {
+            type = types.bool;
+            default = true;
+            decription = lib.mdDoc ''
+              If wg-quick should add route per allowedIPs
+            '';
           };
           peers = mkOption {
             type = types.listOf (types.submodule {
@@ -41,6 +60,20 @@ in {
               };
             });
           };
+          extraPostUp = {
+            type = types.str;
+            default = "";
+            description = lib.mdDoc ''
+              Extra commands executed after interface goes up
+            '';
+          };
+          extraPostDown = {
+            type = types.str;
+            default = "";
+            description = lib.mdDoc ''
+              Extra commands executed after interface goes down
+            '';
+          };
         };
       });
     };
@@ -53,7 +86,7 @@ in {
       routes = builtins.filter (r: r != null) (map (pcfg: pcfg.route) icfg.peers);
       concatLines = (lines: concatStringsSep "\n" lines);
     in {
-      address = [cfg.ips];
+      ips = icfg.ips;
       privateKeyFile = cfg.privateKeyFile;
       listenPort = icfg.listenPort;
 
@@ -64,8 +97,9 @@ in {
         persistentKeepalive = 25;
       }) icfg.peers;
 
-      postUp = concatLines (map (r: "${pkgs.iproute2}/bin/ip route add ${r} dev ${name}") routes);
-      preDown = concatLines (map (r: "${pkgs.iproute2}/bin/ip route del ${r}") routes);
+      allowedIPsAsRoutes = icfg.allowedIPsAsRoutes;
+      postUp = concatLines (map (r: "${pkgs.iproute2}/bin/ip route add ${r} dev ${name}") routes) icfg.extraPostUp;
+      preDown = concatLines (map (r: "${pkgs.iproute2}/bin/ip route del ${r}") routes) icfg.extraPostDown;
     }) cfg.instances;
 
     networking.firewall = {
