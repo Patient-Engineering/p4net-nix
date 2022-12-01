@@ -100,8 +100,8 @@ in {
       }) icfg.peers;
 
       allowedIPsAsRoutes = icfg.allowedIPsAsRoutes;
-      postSetup = concatLines ((map mkAddRoute routes) ++ icfg.extraPostSetup);
-      postShutdown = concatLines ((map mkDelRoute routes) ++ icfg.extraPostShutdown);
+      postSetup = concatLines ((map mkAddRoute routes) ++ [icfg.extraPostSetup]);
+      postShutdown = concatLines ((map mkDelRoute routes) ++ [icfg.extraPostShutdown]);
     }) cfg.instances;
 
     networking.firewall = {
