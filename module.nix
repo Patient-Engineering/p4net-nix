@@ -98,8 +98,8 @@ in {
       }) icfg.peers;
 
       allowedIPsAsRoutes = icfg.allowedIPsAsRoutes;
-      postSetup = concatLines (map (r: "${pkgs.iproute2}/bin/ip route add ${r} dev ${name}") routes) icfg.extraPostSetup;
-      postShutdown = concatLines (map (r: "${pkgs.iproute2}/bin/ip route del ${r}") routes) icfg.extraPostShutdown;
+      postSetup = concatLines [(map (r: "${pkgs.iproute2}/bin/ip route add ${r} dev ${name}") routes) icfg.extraPostSetup];
+      postShutdown = concatLines [(map (r: "${pkgs.iproute2}/bin/ip route del ${r}") routes) icfg.extraPostShutdown];
     }) cfg.instances;
 
     networking.firewall = {
