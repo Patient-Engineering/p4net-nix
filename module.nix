@@ -60,14 +60,14 @@ in {
               };
             });
           };
-          extraPostSetup = {
+          extraPostSetup = mkOption {
             type = types.str;
             default = "";
             description = lib.mdDoc ''
               Extra commands executed after interface goes up
             '';
           };
-          extraPostShutdown = {
+          extraPostShutdown = mkOption {
             type = types.str;
             default = "";
             description = lib.mdDoc ''
@@ -85,6 +85,8 @@ in {
     networking.wireguard.interfaces = builtins.mapAttrs (name: icfg: let
       routes = builtins.filter (r: r != null) (map (pcfg: pcfg.route) icfg.peers);
       concatLines = (lines: concatStringsSep "\n" lines);
+      mkAddRoute = (r: "${pkgs.iproute2}/bin/ip route add ${r} dev ${name}");
+      mkDelRoute = (r: "${pkgs.iproute2}/bin/ip route del ${r}");
     in {
       ips = icfg.ips;
       privateKeyFile = cfg.privateKeyFile;
@@ -98,8 +100,8 @@ in {
       }) icfg.peers;
 
       allowedIPsAsRoutes = icfg.allowedIPsAsRoutes;
-      postSetup = concatLines [(map (r: "${pkgs.iproute2}/bin/ip route add ${r} dev ${name}") routes) icfg.extraPostSetup];
-      postShutdown = concatLines [(map (r: "${pkgs.iproute2}/bin/ip route del ${r}") routes) icfg.extraPostShutdown];
+      postSetup = concatLines [(map mkAddRoute routes) icfg.extraPostSetup];
+      postShutdown = concatLines [(map mkDelRoute routes) icfg.extraPostShutdown];
     }) cfg.instances;
 
     networking.firewall = {
